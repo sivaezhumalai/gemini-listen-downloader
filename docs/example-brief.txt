@@ -1,0 +1,44 @@
+You are preparing a Tamil voice note that I will play with Gemini's "Listen" button and share with my team on WhatsApp. Turn the work summary below into a complete spoken-Tamil explanation for: the whole team, technical and non-technical.
+
+How to write it:
+- Natural, everyday spoken Tamil (பேச்சுத் தமிழ்), the way a friendly team lead explains things face to face. Simple words, short sentences, warm tone.
+- Keep technical and product terms in English where the team uses them (for example API, deploy, booking, database). The first time each one appears, explain what it means in one simple Tamil sentence.
+- Plain paragraphs only. No title, headings, bullet points, numbering symbols, tables, bold, emojis, code, URLs or file paths: every character will be read aloud.
+- Write numbers, money, dates and times the way they should be spoken, for example "512 கிலோமீட்டர்", "நவம்பர் 2-ஆம் தேதி", "₹2,350", "மதியம் 1:30 மணி".
+- Start directly with "வணக்கம் டீம்". Do not write any introduction such as "இதோ…" before it.
+- Follow this order: what this update is about in one line; the problem or goal and why it mattered; the cause (if this was a fix); what we did, step by step; the result with the key numbers and how we checked it; what is still pending or risky; exactly what each person or role in the team needs to do now; a short closing.
+- Cover every point in the summary. Do not drop details; explain them simply, and give a small everyday example where it helps understanding.
+- Finish with the closing sentence. Add nothing after it: no follow-up questions, offers or notes.
+- Reply with only the Tamil voice-note script.
+
+Work summary:
+
+TITLE: New tool to save Gemini's Tamil "Listen" audio as a shareable file, plus a ready-made way to turn our work updates into Tamil voice notes
+
+AUDIENCE NOTE: Everyone uses Gemini and WhatsApp. Most people have not installed a Chrome extension by hand before. Developers know what a browser extension is; non-technical members may not.
+
+CONTEXT: Gemini can read any of its answers aloud in Tamil when you click "Listen", and the voice and explanation are very good. We want to send these explanations to the team as audio, because a voice note in Tamil is faster and clearer for many of us than reading a long English update.
+
+PROBLEM OR GOAL: Gemini only plays the audio inside the browser. There is no download button, so the audio could not be saved or shared. Example: a 2 minute 32 second Tamil explanation of a project update could be played but not sent to anyone.
+
+CAUSE: Not applicable (new feature). For the curious: when you click Listen, Gemini sends the answer text to Google's server and gets the audio back hidden inside the page's data, then plays it from a temporary in-browser link that cannot be downloaded.
+
+WHAT WE DID:
+1. Studied a recording of the browser's network traffic and found exactly where Gemini receives the audio. Recovered a test explanation from that recording as an audio file: 2 minutes 32 seconds, exactly the same bytes Gemini played.
+2. Built a small Chrome extension called Gemini Listen Downloader. When you click Listen in Gemini, a "Gemini audio" panel appears in the bottom-right corner with a player and download buttons. It only keeps a copy of the audio Gemini already received; it sends nothing extra and talks to no other server.
+3. Two download formats: OGG, which is the original audio and downloads instantly, and MP3, which is converted inside the browser so it plays on every phone including iPhones. MP3 conversion of a 2 and a half minute clip takes about 10 seconds and shows a percentage.
+4. Added a Trim tool: it shows the sound as a wave picture, and you drag a start marker and an end marker (or press "Set start" and "Set end" while it plays), preview the selected part, and download only that part as MP3. A tiny fade is added at both ends so the cut does not click.
+5. Files are named automatically with the language and the first few words of the answer, so they are easy to find.
+6. Created a Claude helper: when Claude finishes a piece of work and we want to share it, Claude writes a complete, fact-checked English summary with instructions for Gemini. We paste it into Gemini, Gemini writes a clear spoken-Tamil explanation, we click Listen and download the audio. This voice note was made that way.
+
+RESULT: Before, Gemini's Tamil audio could only be played. Now any Listen audio can be saved as OGG or MP3, trimmed to the exact part we need, and shared on WhatsApp. The test clip: original 2 minutes 32 seconds at about 1.2 MB as OGG, about 1.8 MB as MP3; a trimmed part of 1 minute 26 seconds came out at about 1 MB.
+
+HOW WE CHECKED: 12 automatic tests pass, including one that extracts real captured audio and confirms it matches byte for byte. The panel, waveform, markers, trimmed MP3 export and Tamil labels were checked in Chrome on a test page using the real audio. Not yet tested: the extension inside the real Gemini website after installing it in Chrome. Long answers that Gemini might split into several audio parts are also not yet tested.
+
+PENDING AND RISKS: If Google changes how Gemini sends the audio, the panel will stop appearing until we update one small part of the extension. The extension works on desktop Chrome only, not on phones. If Chrome is set to "Ask where to save each file", it will ask for a file name on every download. Trimmed files are MP3 only; the OGG button always gives the full original.
+
+ACTIONS FOR THE TEAM:
+- Everyone who wants to make voice notes: ask me for the extension file and install it in desktop Chrome (Developer mode, then Load unpacked), then try Listen on any Gemini answer and press Download.
+- Everyone: tell me if the panel does not appear or the audio sounds wrong, with the time it happened.
+- Team leads: try sending your next work update as a Tamil voice note and share feedback on whether it is clear.
+TERMS TO EXPLAIN: Chrome extension = a small add-on that gives Chrome an extra feature; OGG and MP3 = two audio file types, MP3 plays everywhere; trim = cutting out only the part of the audio you want; waveform = a picture of the sound that shows loud and quiet parts; Developer mode = a Chrome setting that allows installing an extension from a folder.
