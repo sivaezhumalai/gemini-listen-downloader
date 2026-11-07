@@ -74,17 +74,23 @@ from a folder ("Load unpacked"). This is normal and safe for extensions you got 
 
 Pick **one** of these:
 
-**Option A: download a ZIP (easiest)**
+**Option A: download the release ZIP (easiest)**
 
-1. On this GitHub page, click the green **`<> Code`** button → **Download ZIP**.
+1. Open the [latest release](https://github.com/sivaezhumalai/gemini-listen-downloader/releases/latest)
+   and download **`gemini-listen-downloader-<version>.zip`** (under *Assets*).
 2. Find the ZIP in your **Downloads** folder and **extract / unzip** it
    (Windows: right-click → *Extract All…*; macOS: double-click; Linux: right-click → *Extract Here*).
-3. You now have a folder named `gemini-listen-downloader-main`. Inside it is a folder named
-   **`extension`**. That's the folder Chrome needs.
-4. Move the `gemini-listen-downloader-main` folder somewhere permanent, such as `Documents`.
+3. You now have a folder named **`gemini-listen-downloader`** with `manifest.json` inside.
+   That's the folder Chrome needs.
+4. Move it somewhere permanent, such as `Documents`.
    **Don't delete it after installing**: Chrome loads the extension from this folder every time.
 
-**Option B: with git**
+**Option B: download the whole repository**
+
+Click the green **`<> Code`** button → **Download ZIP** and unzip it. The folder Chrome needs is
+`gemini-listen-downloader-main/extension`. (This includes the Claude skill and docs too.)
+
+**Option C: with git**
 
 ```bash
 git clone https://github.com/sivaezhumalai/gemini-listen-downloader.git
@@ -110,8 +116,9 @@ Three new buttons appear on the left: *Load unpacked*, *Pack extension* and *Upd
 ### Step 4: Load the extension
 
 1. Click **Load unpacked**.
-2. In the folder picker, open the folder from Step 1 and select the **`extension`** folder
-   (the one that contains `manifest.json`), then click **Select** / **Open**.
+2. In the folder picker, select the folder from Step 1 that **directly contains `manifest.json`**
+   (`gemini-listen-downloader` from the release ZIP, or the `extension` folder from the repository),
+   then click **Select** / **Open**.
 
    > **Tip (Linux/Windows):** in the folder picker press **Ctrl+L**, paste the full path to the
    > `extension` folder and press **Enter**.
