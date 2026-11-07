@@ -1,6 +1,6 @@
 {
   "name": "gemini-listen-downloader",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "Chrome extension to download, convert to MP3 and trim Gemini's \"Listen\" audio, plus a Claude Code skill that turns work summaries into Tamil voice-note prompts for Gemini.",
   "license": "MIT",

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Listen Downloader",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Retro tape deck for Gemini's \"Listen\" audio: save as OGG or MP3, trim, boost, shorten pauses, rename, share and keep a library.",
   "homepage_url": "https://github.com/sivaezhumalai/gemini-listen-downloader",
   "icons": {

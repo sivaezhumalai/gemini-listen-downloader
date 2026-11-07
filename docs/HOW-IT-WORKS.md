@@ -65,9 +65,11 @@ Flow:
    The extension does **not** make any extra network requests; it only copies what Gemini
    already received.
 4. **Replays:** if Gemini plays audio it fetched earlier (no new request), the wrapped
-   `HTMLMediaElement.prototype.play` reads the page's own `blob:` URL before playback starts.
-   Same bytes → same id → the existing tape is loaded instead of a duplicate. Blob URLs created by
-   the deck itself are ignored.
+   `HTMLMediaElement.prototype.play` looks up the `Blob` behind the page's `blob:` URL and reads its
+   bytes. Gemini's CSP (`connect-src`) forbids `fetch()` on `blob:` URLs, so the extension wraps
+   `URL.createObjectURL` / `revokeObjectURL` and remembers the Blob for every audio-sized URL the
+   page creates; no network request is involved. Same bytes → same id → the existing tape is loaded
+   instead of a duplicate. Blob URLs created by the deck itself are ignored.
 5. **⬇ MP3** decodes the OGG with `OfflineAudioContext.decodeAudioData` (the browser's own Opus
    decoder), optionally runs `applyCleanup` (shorten pauses, then boost), then encodes 96 kbps mono
    MP3 with LAME. Decoded audio and the last MP3 are cached per tape.

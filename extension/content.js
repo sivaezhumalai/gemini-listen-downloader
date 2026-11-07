@@ -22,15 +22,34 @@
 
   // ---------- small helpers ----------
 
+  // Remember the Blob behind every audio-sized blob: URL the page creates. Gemini's CSP
+  // forbids fetch() on blob: URLs, so replays are read from this map instead (no network).
+  const origCreateObjectURL = URL.createObjectURL;
+  const origRevokeObjectURL = URL.revokeObjectURL;
+  const blobByUrl = new Map();
+  URL.createObjectURL = function (obj) {
+    const url = origCreateObjectURL.apply(this, arguments);
+    try {
+      if (obj instanceof Blob && obj.size >= 2048 && (!obj.type || /^(audio\/|application\/octet-stream)/.test(obj.type))) blobByUrl.set(url, obj);
+    } catch (_) {
+      /* never break the page */
+    }
+    return url;
+  };
+  URL.revokeObjectURL = function (url) {
+    blobByUrl.delete(url);
+    return origRevokeObjectURL.apply(this, arguments);
+  };
+
   const ownUrls = new Set(); // blob: URLs we created (never "capture" our own playback)
   function ownUrl(blob) {
-    const u = URL.createObjectURL(blob);
+    const u = origCreateObjectURL.call(URL, blob);
     ownUrls.add(u);
     return u;
   }
   function revokeUrl(u) {
     if (!u) return;
-    URL.revokeObjectURL(u);
+    origRevokeObjectURL.call(URL, u);
     ownUrls.delete(u);
   }
   function clamp(v, lo, hi) {
@@ -198,8 +217,9 @@
   }
 
   // ---------- capture: replays ----------
-  // If Gemini replays audio it fetched earlier (no new request), read the blob the
-  // page's own <audio> is about to play. Same bytes -> same id, so no duplicates.
+  // If Gemini replays audio it fetched earlier (no new request), read the Blob behind the
+  // blob: URL the page's own <audio> is about to play (remembered when the page created it).
+  // Same bytes -> same id, so no duplicates.
   const checkedMedia = new Set();
   const mediaProto = HTMLMediaElement.prototype;
   const origPlay = mediaProto.play;
@@ -214,13 +234,13 @@
   function captureFromMedia(el) {
     const src = el.currentSrc || el.src;
     if (!src || !src.startsWith('blob:') || ownUrls.has(src) || checkedMedia.has(src)) return;
+    const blob = blobByUrl.get(src);
+    if (!blob) return; // created before the extension loaded, or not audio: nothing to read
     checkedMedia.add(src);
-    const get = typeof origFetch === 'function' ? origFetch.call(window, src) : Promise.reject(new Error('no fetch'));
-    get
-      .then((r) => r.blob())
-      .then(async (blob) => {
-        if (blob.size < 2048) return;
-        const bytes = new Uint8Array(await blob.arrayBuffer());
+    blob
+      .arrayBuffer()
+      .then((buf) => {
+        const bytes = new Uint8Array(buf);
         const isOgg = bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53;
         if (!isOgg && !/^audio\//.test(blob.type)) return;
         addCapture(bytes, { text: '', lang: '' }, 'replay');
