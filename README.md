@@ -22,6 +22,8 @@
 - [Part 2: Use the tape deck](#part-2-use-the-tape-deck)
 - [Part 3: Trim the audio](#part-3-trim-the-audio)
 - [Part 4: Tamil voice notes with Claude Code (the skill)](#part-4-tamil-voice-notes-with-claude-code-the-skill)
+- [Part 5: Tamil audio summaries of anything (the Gemini Gem)](#part-5-tamil-audio-summaries-of-anything-the-gemini-gem)
+- [On your phone](docs/MOBILE.md)
 - [Updating and uninstalling](#updating-and-uninstalling)
 - [Troubleshooting](#troubleshooting)
 - [Privacy and security](#privacy-and-security)
@@ -37,9 +39,13 @@
 | Piece | What it does | Who needs it |
 |---|---|---|
 | **Chrome extension** (`extension/`) | Adds a retro **tape deck** to gemini.google.com. Every time you click **Listen**, the audio is recorded as a tape: play it, download **OGG** / **MP3**, **trim** it, **boost** quiet speech, **shorten pauses**, rename it, copy the spoken text, share it, and find it again later in the **tape rack**. | Anyone who wants to save Gemini's spoken answers |
+| **Gemini Gem** ([`gemini-gem/tamil-audio-summary.md`](gemini-gem/tamil-audio-summary.md)) | Paste any **link, article, news, PDF, screenshot or Gemini chat** into the *Tamil Audio Summary* Gem and it writes a warm, human-sounding **Tamil voice-note script**, ready for **Listen**. Works in the Gemini **mobile app** too. | Anyone who wants Tamil audio summaries of what they read |
 | **Claude Code skill** (`skills/gemini-tamil-brief/`) | When Claude Code finishes a task, `/gemini-tamil-brief` writes a complete, fact-checked summary with instructions that make Gemini answer in natural spoken Tamil, ready for **Listen**. | People who use [Claude Code](https://claude.com/claude-code) and share updates with a Tamil-speaking team |
 
-You can use the extension on its own. The skill is optional.
+You can use the extension on its own. The Gem and the skill are optional.
+
+> **On a phone?** The extension needs desktop Chrome. For Android and iPhone, see
+> **[docs/MOBILE.md](docs/MOBILE.md)**: Tamil audio you can download using the NotebookLM app, or the Gem plus your phone's screen recorder.
 
 > The extension works for **any language** Gemini can speak. Only the skill is Tamil-specific,
 > and you can change it to another language (see [Use a different language](#use-a-different-language)).
@@ -344,6 +350,24 @@ and the number examples with your language's equivalents. Rename the folder and 
 
 ---
 
+## Part 5: Tamil audio summaries of anything (the Gemini Gem)
+
+The Claude skill covers *work you did with Claude*. For **everything else you read**, such as a news
+article, a blog post, a PDF, a YouTube video or a long Gemini conversation, use the
+**Tamil Audio Summary** Gem. A Gem is Gemini's version of a skill: saved instructions it follows every time.
+
+It writes scripts **meant for the ear**, like a friendly radio presenter: a hook to start, the story
+in plain spoken Tamil with one everyday example, what it means for you, one line to remember and a
+warm goodbye. No lists, no symbols, no AI filler, and only facts from your source.
+
+1. **Create it once** on a computer: gemini.google.com → **Gems → New Gem** → paste the instructions from
+   **[gemini-gem/tamil-audio-summary.md](gemini-gem/tamil-audio-summary.md)** → **Save**.
+2. **Use it anywhere** (computer or the Gemini phone app): open the Gem, paste a link or text (add
+   `short`, `detailed`, `for elders`, `for my team`… if you like) → click **⋮ → Listen**.
+3. **Save the audio:** on a computer, the tape deck opens automatically. On a phone, see [docs/MOBILE.md](docs/MOBILE.md).
+
+---
+
 ## Updating and uninstalling
 
 **Update the extension**
@@ -417,12 +441,15 @@ gemini-listen-downloader/
 ├── skills/
 │   └── gemini-tamil-brief/
 │       └── SKILL.md           The Claude Code skill
+├── gemini-gem/
+│   └── tamil-audio-summary.md The Gemini Gem: setup + instructions to paste
 ├── scripts/
 │   ├── install-skill.sh       Skill installer (macOS / Linux / Git Bash)
 │   ├── install-skill.ps1      Skill installer (Windows PowerShell)
 │   └── package.js             Builds dist/gemini-listen-downloader-<version>.zip
 ├── docs/
 │   ├── HOW-IT-WORKS.md        Technical notes and how to fix it if Gemini changes
+│   ├── MOBILE.md              Options for Android and iPhone users
 │   ├── example-brief.txt      Example output of the skill
 │   └── images/tape-deck.png   Screenshot
 ├── test/
