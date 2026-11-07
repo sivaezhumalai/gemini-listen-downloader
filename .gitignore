@@ -1,0 +1,16 @@
+# Local audio, captures and builds: never commit (they can contain private conversations)
+out/
+*.har
+*.ogg
+*.mp3
+*.m4a
+*.wav
+*.zip
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
