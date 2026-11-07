@@ -11,7 +11,7 @@ The user shares finished work with their team as a **Tamil audio voice note**:
 Claude writes a complete, fact-checked work summary wrapped in instructions for Gemini →
 the user pastes it into gemini.google.com → Gemini answers with a spoken-Tamil script →
 the user clicks **⋮ → Listen** and downloads the audio with the *Gemini Listen Downloader*
-Chrome extension (OGG/MP3, with trim): https://github.com/sivaezhumalai/gemini-listen-downloader
+Chrome extension (retro tape deck: OGG/MP3, trim, boost, shorten pauses): https://github.com/sivaezhumalai/gemini-listen-downloader
 
 Claude's job is the **input to Gemini**. Two things decide the audio quality:
 1. **The facts:** complete, correct, nothing invented, nothing secret.
@@ -89,7 +89,7 @@ the gap itself.
    ```
 5. **Reply to the user** with: the file path, whether it's on the clipboard, the block itself
    in a fenced code block, and the next steps: paste into Gemini → wait for the Tamil reply →
-   **⋮ → Listen** → **🔊 Gemini audio** panel → **⬇ MP3** (or **✂ Trim** first).
+   **⋮ → Listen** → the **tape deck** opens → **⬇ MP3** (optionally switch on **Boost volume** / **Shorten pauses**, or **✂ Trim** first).
 
 ## Common mistakes
 

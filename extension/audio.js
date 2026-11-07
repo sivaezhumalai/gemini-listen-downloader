@@ -141,5 +141,247 @@
     applyFade,
     formatTime,
     decodeBlob,
+    fingerprint,
+    measureLevels,
+    normalizeLoudness,
+    findSilences,
+    shortenPauses,
+    applyCleanup,
   };
+
+  /**
+   * fingerprint(bytes: Uint8Array) -> string
+   * FNV-1a 32-bit hash over ALL bytes (offset basis 0x811c9dc5, prime 0x01000193, use Math.imul and >>>0),
+   * returned as `${bytes.length.toString(16)}-${hash.toString(16).padStart(8,'0')}`.
+   */
+  function fingerprint(bytes) {
+    let hash = 0x811c9dc5 >>> 0;
+    const len = bytes ? bytes.length : 0;
+    for (let i = 0; i < len; i++) {
+      hash ^= bytes[i];
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return `${len.toString(16)}-${hash.toString(16).padStart(8, '0')}`;
+  }
+
+  /**
+   * measureLevels(samples: Float32Array) -> {peak, rms}
+   * peak = max |x|; rms = sqrt(mean(x^2)); empty input -> {peak:0, rms:0}.
+   */
+  function measureLevels(samples) {
+    const n = samples ? samples.length : 0;
+    if (n === 0) return { peak: 0, rms: 0 };
+    let peak = 0;
+    let sumSq = 0;
+    for (let i = 0; i < n; i++) {
+      const val = Math.abs(samples[i]);
+      if (val > peak) peak = val;
+      sumSq += val * val;
+    }
+    return { peak, rms: Math.sqrt(sumSq / n) };
+  }
+
+  /**
+   * normalizeLoudness(samples, opts = {}) -> NEW Float32Array (input untouched)
+   * Options: targetRms = 0.1, peakLimit = 0.95, maxGain = 8.
+   * gain = min(targetRms / rms, peakLimit / peak, maxGain).
+   * If rms === 0 or peak === 0 return an unchanged copy.
+   * Never reduce volume: if the computed gain < 1, use gain 1 (return a copy).
+   * Multiply every sample by gain. Result must never exceed peakLimit in absolute value.
+   */
+  function normalizeLoudness(samples, opts = {}) {
+    const { targetRms = 0.1, peakLimit = 0.95, maxGain = 8 } = opts;
+    const n = samples ? samples.length : 0;
+    const out = new Float32Array(samples);
+    if (n === 0) return out;
+
+    const { peak, rms } = measureLevels(samples);
+    if (rms === 0 || peak === 0) return out;
+
+    const gain = Math.min(targetRms / rms, peakLimit / peak, maxGain);
+    if (gain < 1) return out;
+
+    for (let i = 0; i < n; i++) {
+      let s = samples[i] * gain;
+      if (s > peakLimit) s = peakLimit;
+      else if (s < -peakLimit) s = -peakLimit;
+      out[i] = s;
+    }
+    return out;
+  }
+
+  /**
+   * findSilences(samples, sampleRate, opts = {}) -> Array<{start, end}> in SECONDS, sorted.
+   * Options: threshold = 0.02, minSilence = 0.6, windowSec = 0.01.
+   * Split the signal into consecutive windows of round(windowSec*sampleRate) samples (last partial window included);
+   * a window is silent when its RMS < threshold.
+   * Merge consecutive silent windows into runs; return runs whose length >= minSilence.
+   * start = firstWindowIndex*windowLen/sampleRate, end = min(n, (lastWindowIndex+1)*windowLen)/sampleRate.
+   */
+  function findSilences(samples, sampleRate, opts = {}) {
+    const { threshold = 0.02, minSilence = 0.6, windowSec = 0.01 } = opts;
+    const n = samples ? samples.length : 0;
+    if (n === 0 || sampleRate <= 0) return [];
+
+    const windowLen = Math.max(1, Math.round(windowSec * sampleRate));
+    const numWindows = Math.ceil(n / windowLen);
+
+    const silentWindows = new Uint8Array(numWindows);
+    for (let w = 0; w < numWindows; w++) {
+      const start = w * windowLen;
+      const end = Math.min(n, (w + 1) * windowLen);
+      const len = end - start;
+      let sumSq = 0;
+      for (let i = start; i < end; i++) {
+        const val = samples[i];
+        sumSq += val * val;
+      }
+      const rms = Math.sqrt(sumSq / len);
+      if (rms < threshold) {
+        silentWindows[w] = 1;
+      }
+    }
+
+    const runs = [];
+    let runStart = -1;
+    for (let w = 0; w <= numWindows; w++) {
+      if (w < numWindows && silentWindows[w] === 1) {
+        if (runStart === -1) runStart = w;
+      } else {
+        if (runStart !== -1) {
+          const firstWindowIndex = runStart;
+          const lastWindowIndex = w - 1;
+          const start = (firstWindowIndex * windowLen) / sampleRate;
+          const end = Math.min(n, (lastWindowIndex + 1) * windowLen) / sampleRate;
+          if (end - start >= minSilence - 1e-9) {
+            runs.push({ start, end });
+          }
+          runStart = -1;
+        }
+      }
+    }
+    return runs;
+  }
+
+  /**
+   * shortenPauses(samples, sampleRate, opts = {}) -> {samples: Float32Array, removedSec: number}
+   * Options: threshold = 0.02, minSilence = 0.6, keepPause = 0.35, fadeSec = 0.005.
+   * Use findSilences(threshold, minSilence).
+   * For every silence longer than keepPause, keep keepPause/2 seconds at its beginning and keepPause/2 at its end and drop the middle.
+   * Join pieces with a short linear fade-out/fade-in of fadeSec on each side of every cut (fade lengths capped to half of each piece).
+   * removedSec = total seconds dropped (computed from sample counts / sampleRate).
+   * No silences -> return a copy and removedSec 0. Input must not be mutated.
+   */
+  function shortenPauses(samples, sampleRate, opts = {}) {
+    const {
+      threshold = 0.02,
+      minSilence = 0.6,
+      keepPause = 0.35,
+      fadeSec = 0.005,
+      windowSec = 0.01,
+    } = opts;
+
+    const n = samples ? samples.length : 0;
+    if (n === 0 || sampleRate <= 0) {
+      return { samples: new Float32Array(samples || 0), removedSec: 0 };
+    }
+
+    const silences = findSilences(samples, sampleRate, { threshold, minSilence, windowSec });
+    if (!silences || silences.length === 0) {
+      return { samples: new Float32Array(samples), removedSec: 0 };
+    }
+
+    const cuts = [];
+    for (let i = 0; i < silences.length; i++) {
+      const s = silences[i];
+      if (s.end - s.start > keepPause) {
+        const dropStartSec = s.start + keepPause / 2;
+        const dropEndSec = s.end - keepPause / 2;
+        const startSample = Math.max(0, Math.min(n, Math.round(dropStartSec * sampleRate)));
+        const endSample = Math.max(startSample, Math.min(n, Math.round(dropEndSec * sampleRate)));
+        if (endSample > startSample) {
+          cuts.push({ startSample, endSample });
+        }
+      }
+    }
+
+    if (cuts.length === 0) {
+      return { samples: new Float32Array(samples), removedSec: 0 };
+    }
+
+    // Build kept pieces
+    const pieces = [];
+    for (let i = 0; i <= cuts.length; i++) {
+      const pStart = (i === 0) ? 0 : cuts[i - 1].endSample;
+      const pEnd = (i === cuts.length) ? n : cuts[i].startSample;
+      pieces.push(samples.slice(pStart, pEnd));
+    }
+
+    // Apply linear fade-out / fade-in on each side of every cut
+    for (let i = 0; i < pieces.length; i++) {
+      const p = pieces[i];
+      const pLen = p.length;
+      if (pLen === 0) continue;
+
+      const maxFade = Math.floor(pLen / 2);
+      const targetFade = Math.round(fadeSec * sampleRate);
+      const fadeLen = Math.min(maxFade, targetFade);
+      if (fadeLen <= 0) continue;
+
+      // Cut at start -> fade in
+      if (i > 0) {
+        for (let j = 0; j < fadeLen; j++) {
+          p[j] *= j / fadeLen;
+        }
+      }
+
+      // Cut at end -> fade out
+      if (i < cuts.length) {
+        for (let j = 0; j < fadeLen; j++) {
+          p[pLen - fadeLen + j] *= (fadeLen - j) / fadeLen;
+        }
+      }
+    }
+
+    let totalLen = 0;
+    for (let i = 0; i < pieces.length; i++) {
+      totalLen += pieces[i].length;
+    }
+
+    const out = new Float32Array(totalLen);
+    let offset = 0;
+    for (let i = 0; i < pieces.length; i++) {
+      out.set(pieces[i], offset);
+      offset += pieces[i].length;
+    }
+
+    const removedSec = (n - totalLen) / sampleRate;
+    return { samples: out, removedSec };
+  }
+
+  /**
+   * applyCleanup(samples, sampleRate, {boost = false, shorten = false} = {}) -> {samples, removedSec}
+   * runs shortenPauses first (if shorten), then normalizeLoudness (if boost);
+   * with both false returns {samples: copy, removedSec: 0}.
+   */
+  function applyCleanup(samples, sampleRate, opts = {}) {
+    const { boost = false, shorten = false, ...rest } = opts;
+    let curSamples;
+    let removedSec = 0;
+
+    if (shorten) {
+      const res = shortenPauses(samples, sampleRate, rest);
+      curSamples = res.samples;
+      removedSec = res.removedSec;
+    } else {
+      curSamples = new Float32Array(samples);
+      removedSec = 0;
+    }
+
+    if (boost) {
+      curSamples = normalizeLoudness(curSamples, rest);
+    }
+
+    return { samples: curSamples, removedSec };
+  }
 })();

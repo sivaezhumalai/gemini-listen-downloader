@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Gemini Listen Downloader",
-  "version": "1.2.0",
-  "description": "Download, convert to MP3 and trim the audio Gemini plays when you click \"Listen\" on a response.",
+  "version": "2.0.0",
+  "description": "Retro tape deck for Gemini's \"Listen\" audio: save as OGG or MP3, trim, boost, shorten pauses, rename, share and keep a library.",
   "homepage_url": "https://github.com/sivaezhumalai/gemini-listen-downloader",
   "icons": {
     "16": "icons/icon16.png",
@@ -12,8 +12,17 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://gemini.google.com/*"],
-      "js": ["vendor/lame.min.js", "parse.js", "audio.js", "mp3.js", "content.js"],
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "vendor/lame.min.js",
+        "parse.js",
+        "audio.js",
+        "store.js",
+        "mp3.js",
+        "content.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": false

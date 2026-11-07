@@ -48,9 +48,10 @@ All scripts run as content scripts in the page's **MAIN world** at `document_sta
 |---|---|
 | `vendor/lame.min.js` | LAME MP3 encoder (lamejs 1.2.1, unmodified) |
 | `parse.js` | Pure helpers: detect the TTS URL, pull the base64 audio out of the response, read text + language from the request, base64 → bytes, sniff the format, build the file name |
-| `audio.js` | Pure helpers for trimming: waveform peaks, selection clamping, slicing, fades, time formatting; plus `decodeBlob` (Web Audio decode) |
+| `audio.js` | Pure helpers: waveform peaks, selection clamping, slicing, fades, time formatting, `fingerprint` (FNV-1a id for de-duplication), `normalizeLoudness` (Boost volume), `findSilences` / `shortenPauses` (Shorten pauses), `applyCleanup`; plus `decodeBlob` (Web Audio decode) |
+| `store.js` | The tape rack: a small Promise wrapper around IndexedDB (DB `gemini-listen-downloader`, store `clips`), keeps the last 30 tapes |
 | `mp3.js` | Float/Int16 PCM → MP3 via lamejs, in ~1 s chunks so the page stays responsive |
-| `content.js` | Wraps `XMLHttpRequest` and `fetch`, captures the TTS response, and draws the panel UI |
+| `content.js` | Wraps `XMLHttpRequest`, `fetch` and `HTMLMediaElement.play`, captures the audio, and draws the tape deck UI |
 
 Flow:
 
@@ -59,26 +60,37 @@ Flow:
    body and listens for the response.
 2. On `load`, `parse.extractAudioBase64()` scans the response lines for
    `["wrb.fr","XqA3Ic", "<json>"]` and returns the base64 string(s).
-3. The bytes are wrapped in a `Blob` (`audio/ogg`) and a card is added to the panel.
+3. The bytes get an id (`fingerprint`, so the same audio is never stored twice), are wrapped in a
+   `Blob` (`audio/ogg`), saved to the tape rack (IndexedDB) and loaded into the deck.
    The extension does **not** make any extra network requests; it only copies what Gemini
    already received.
-4. **⬇ MP3** decodes the OGG with `OfflineAudioContext.decodeAudioData` (the browser's own Opus
-   decoder), then encodes 96 kbps mono MP3 with LAME. The decoded audio is cached per clip.
-5. **✂ Trim** draws the waveform on a `<canvas>`, lets you drag start/end markers, and encodes
-   only the selected samples (with a 10 ms fade at both ends to avoid clicks) to MP3.
+4. **Replays:** if Gemini plays audio it fetched earlier (no new request), the wrapped
+   `HTMLMediaElement.prototype.play` reads the page's own `blob:` URL before playback starts.
+   Same bytes → same id → the existing tape is loaded instead of a duplicate. Blob URLs created by
+   the deck itself are ignored.
+5. **⬇ MP3** decodes the OGG with `OfflineAudioContext.decodeAudioData` (the browser's own Opus
+   decoder), optionally runs `applyCleanup` (shorten pauses, then boost), then encodes 96 kbps mono
+   MP3 with LAME. Decoded audio and the last MP3 are cached per tape.
+6. **✂ Trim** draws the waveform on a `<canvas>` "oscilloscope" with zoom, lets you set IN/OUT
+   markers (drag, buttons, ±0.1 s nudges, I/O keys), and encodes only the selected samples
+   (10 ms fade at both ends) to MP3.
+7. The VU meter routes the deck's `<audio>` through a Web Audio `AnalyserNode` (created on your first
+   Play click, as browsers require).
 
 ### Why the UI is built the way it is
 
 - **Shadow DOM + `adoptedStyleSheets`**: Gemini's styles can't leak in, ours can't leak out.
 - **No `innerHTML`**: gemini.google.com enforces Trusted Types, so all DOM is created with
   `createElement` / `textContent`.
-- **Floating panel instead of a button in Gemini's ⋮ menu**: Gemini's menus are re-rendered
-  often and their markup changes; a separate panel keeps working across UI updates.
+- **Floating deck instead of a button in Gemini's ⋮ menu**: Gemini's menus are re-rendered
+  often and their markup changes; a separate deck keeps working across UI updates.
+- **Cassette art is inline SVG** built with `createElementNS`, themed with CSS variables
+  (light and dark follow your system setting).
 
 ## 3. If it stops working
 
 Google can change this internal API at any time. Signs: you click Listen, audio plays, but
-no panel appears.
+the deck doesn't open.
 
 1. Open DevTools → **Network**, filter by `batchexecute`, click **Listen**, and find the request
    whose response is large (hundreds of KB to MB).
