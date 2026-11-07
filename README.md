@@ -126,7 +126,7 @@ Three new buttons appear on the left: *Load unpacked*, *Pack extension* and *Upd
 3. A card named **Gemini Listen Downloader** appears, with a blue icon. Make sure its switch is **on**.
 
 > **"Manifest file is missing or unreadable"?** You picked the wrong folder. Pick the folder that
-> directly contains `manifest.json` (the `extension` folder), not its parent.
+> directly contains `manifest.json`, not its parent.
 
 ### Step 5: Reload Gemini
 
@@ -372,7 +372,7 @@ and the number examples with your language's equivalents. Rename the folder and 
 | **Chrome asks where to save every file** | That's your Chrome setting: Settings → Downloads → *Ask where to save each file before downloading*. Turn it off to save straight to Downloads. |
 | **"MP3 failed – retry"** | Click it again. If it keeps failing, use **⬇ OGG** and convert it elsewhere (for example `ffmpeg -i in.ogg -b:a 96k out.mp3`), and please open an issue with the Console messages. |
 | **Tamil text shows as boxes (□□□) on the deck** | Your computer is missing a Tamil font. Install **Noto Sans Tamil** (free from Google Fonts) and restart Chrome. The audio isn't affected. |
-| **"Manifest file is missing or unreadable"** when loading | Select the `extension` folder itself (the one with `manifest.json` inside). |
+| **"Manifest file is missing or unreadable"** when loading | Select the folder that directly contains `manifest.json` (`gemini-listen-downloader` from the release ZIP, or `extension` from the repository). |
 | Extension disappeared after a restart | You deleted or moved the folder you loaded. Put it back, or load it again from the new place. |
 | Chrome shows a "Disable developer mode extensions" message | Normal for unpacked extensions. Click ✕ or **Keep**. |
 | `/gemini-tamil-brief` isn't recognised | Start a **new** Claude Code session after installing. Check that `~/.claude/skills/gemini-tamil-brief/SKILL.md` exists. |
